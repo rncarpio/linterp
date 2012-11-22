@@ -36,6 +36,9 @@ For a description of the algorithms, see:
 #include <functional>
 
 #include <boost/multi_array.hpp>
+#include <boost/numeric/ublas/matrix.hpp>
+#include <boost/numeric/ublas/matrix_proxy.hpp>
+#include <boost/numeric/ublas/storage.hpp>
 
 using std::vector;
 using std::array;
@@ -54,7 +57,7 @@ typedef vector<double> dVec;
 //   2) scalar type T
 //   3) copy data or not (default: false). The grids will always be copied
 //   4) ref count class (default: none)
-//   5) continuous or not. If not continuous, each dimension will have twice as many data points
+//   5) continuous or not
 
 // run-time constructor params:
 //   1) f
@@ -64,65 +67,85 @@ typedef vector<double> dVec;
 
 struct EmptyClass {};
 
-template <int N, class T, bool CopyData = true, class RefCountT = EmptyClass, bool Continuous = true>
+template <int N, class T, bool CopyData = true, bool Continuous = true, class ArrayRefCountT = EmptyClass, class GridRefCountT = EmptyClass>
 class NDInterpolator {
 public:
   typedef T value_type;
-  typedef RefCountT array_ref_count_type;
+  typedef ArrayRefCountT array_ref_count_type;
+  typedef GridRefCountT grid_ref_count_type;
   
   static const int m_N = N;
   static const bool m_bCopyData = CopyData;
   static const bool m_bContinuous = Continuous;
-    
-  typedef vector<T> grid_type;  
+  
+  typedef boost::numeric::ublas::array_adaptor<T> grid_type;
   typedef boost::const_multi_array_ref<T, N> array_type; 
   typedef std::unique_ptr<array_type> array_type_ptr;
   
   array_type_ptr m_pF;
-  RefCountT m_refF;							// reference count for m_pF
-  vector<T> m_FCopy;
+  ArrayRefCountT m_ref_F;					// reference count for m_pF
+  vector<T> m_F_copy;						// if CopyData == true, this holds the copy of F
+     
+  vector<grid_type> m_grid_list;    
+  vector<GridRefCountT> m_grid_ref_list;	// reference counts for grids  
+  vector<vector<T> > m_grid_copy_list;  	// if CopyData == true, this holds the copies of the grids
   
-  array<vector<T>, N> m_gridList;
-  
+  // constructors assume that [f_begin, f_end) is a contiguous array in C-order  
   // non ref-counted constructor.
-  template <class IterT1, class IterT2>  														
-  NDInterpolator(IterT1 begins_begin, IterT1 begins_end, IterT1 ends_begin, IterT2 f_begin, IterT2 f_end) {	
-    init(begins_begin, begins_end, ends_begin, f_begin, f_end);  
+  template <class IterT1, class IterT2, class IterT3>  
+  NDInterpolator(IterT1 grids_begin, IterT2 grids_len_begin, IterT3 f_begin, IterT3 f_end) {
+    init(grids_begin, grids_len_begin, f_begin, f_end);  
   }
+  
   // ref-counted constructor
-  template <class IterT1, class IterT2>
-  NDInterpolator(IterT1 begins_begin, IterT1 begins_end, IterT1 ends_begin, IterT2 f_begin, IterT2 f_end, RefCountT &refF) {
-    init_refcount(begins_begin, begins_end, ends_begin, f_begin, f_end, refF);
+  template <class IterT1, class IterT2, class IterT3, class RefCountIterT>
+  NDInterpolator(IterT1 grids_begin, IterT2 grids_len_begin, IterT3 f_begin, IterT3 f_end, ArrayRefCountT &refF, RefCountIterT grid_refs_begin) {
+    init_refcount(grids_begin, grids_len_begin, f_begin, f_end, refF, grid_refs_begin);
   }	
   
-  template <class IterT1, class IterT2>  														
-  void init(IterT1 begins_begin, IterT1 begins_end, IterT1 ends_begin, IterT2 f_begin, IterT2 f_end) {
-    set_grids(begins_begin, begins_end, ends_begin);
+  template <class IterT1, class IterT2, class IterT3>  														
+  void init(IterT1 grids_begin, IterT2 grids_len_begin, IterT3 f_begin, IterT3 f_end) {    
+    set_grids(grids_begin, grids_len_begin, m_bCopyData);
 	set_f_array(f_begin, f_end, m_bCopyData);
   }  
-  template <class IterT1, class IterT2>
-  void init_refcount(IterT1 begins_begin, IterT1 begins_end, IterT1 ends_begin, IterT2 f_begin, IterT2 f_end, RefCountT &refF) {	
-    set_grids(begins_begin, begins_end, ends_begin);
-	set_f_array_ref(f_begin, f_end, refF);    	
+  template <class IterT1, class IterT2, class IterT3, class RefCountIterT>
+  void init_refcount(IterT1 grids_begin, IterT2 grids_len_begin, IterT3 f_begin, IterT3 f_end, ArrayRefCountT &refF, RefCountIterT grid_refs_begin) {	    
+    set_grids(grids_begin, grids_len_begin, m_bCopyData);
+	set_grids_refcount(grid_refs_begin, grid_refs_begin + N);
+	set_f_array(f_begin, f_end, m_bCopyData);
+	set_f_refcount(refF);
+  }	
+
+  template <class IterT1, class IterT2>  
+  void set_grids(IterT1 grids_begin, IterT2 grids_len_begin, bool bCopy) {
+	m_grid_list.clear();
+	m_grid_ref_list.clear();
+	m_grid_copy_list.clear();
+	for (int i=0; i<N; i++) {
+	  int gridLength = grids_len_begin[i];
+	  if (bCopy == false) {	    
+	    T const *grid_ptr = &(*grids_begin[i]);
+	    m_grid_list.push_back(grid_type(gridLength, (T*) grid_ptr ));	  				// use the given pointer
+	  } else {
+	    m_grid_copy_list.push_back( vector<T>(grids_begin[i], grids_begin[i] + grids_len_begin[i]) );	// make our own copy of the grid
+		T *begin = &(m_grid_copy_list[i][0]);
+	    m_grid_list.push_back(grid_type(gridLength, begin));							// use our copy
+	  }
+    }
+  }    
+  template <class IterT1, class RefCountIterT>  
+  void set_grids_refcount(RefCountIterT refs_begin, RefCountIterT refs_end) {
+    assert(refs_end - refs_begin == N);	
+	m_grid_ref_list.assign(refs_begin, refs_begin + N);
   }	
   
-  template <class IterT1>  
-  void set_grids(IterT1 begins_begin, IterT1 begins_end, IterT1 ends_begin) {
-    int nGrids = begins_end - begins_begin;
-    assert(nGrids == N);
-	for (int i=0; i<N; i++) {
-	  int gridLength = ends_begin[i] - begins_begin[i];
-	  m_gridList[i].assign(begins_begin[i], ends_begin[i]);
-	}
-  }
-
   // assumes that [f_begin, f_end) is a contiguous array in C-order  
   template <class IterT>  
   void set_f_array(IterT f_begin, IterT f_end, bool bCopy) {
     unsigned int nGridPoints = 1;
 	array<int,N> sizes;
-	for (unsigned int i=0; i<m_gridList.size(); i++) {
-	  sizes[i] = m_gridList[i].size();
+	for (unsigned int i=0; i<m_grid_list.size(); i++) {
+	  sizes[i] = m_grid_list[i].size();
 	  nGridPoints *= sizes[i];
 	}
 
@@ -130,27 +153,26 @@ public:
 	if ( (m_bContinuous && f_len != nGridPoints) || (!m_bContinuous && f_len != 2 * nGridPoints) ) {
 	  throw std::invalid_argument("f has wrong size");
 	}
-	for (unsigned int i=0; i<m_gridList.size(); i++) {
+	for (unsigned int i=0; i<m_grid_list.size(); i++) {
 	  if (!m_bContinuous) { sizes[i] *= 2; }	  
 	}
 
+	m_F_copy.clear();
     if (bCopy == false) {
 	  m_pF.reset(new array_type(f_begin, sizes));
 	} else {
-	  m_FCopy = vector<T>(f_begin, f_end);
-	  m_pF.reset(new array_type(&m_FCopy[0], sizes));
+	  m_F_copy = vector<T>(f_begin, f_end);
+	  m_pF.reset(new array_type(&m_F_copy[0], sizes));
 	}
-  }
-  template <class IterT>  
-  void set_f_array_ref(IterT f_begin, IterT f_end, RefCountT &refF, bool bCopy=CopyData) {
-    set_f_array(f_begin, f_end, bCopy);
-    m_refF = refF;
+  }  
+  void set_f_refcount(ArrayRefCountT &refF) {    
+    m_ref_F = refF;
   }
   
   // -1 is before the first grid point
   // N-1 (where grid.size() == N) is after the last grid point
   int find_cell(int dim, T x) const {  
-    grid_type const &grid(m_gridList[dim]);
+    grid_type const &grid(m_grid_list[dim]);
     if (x < *(grid.begin())) return -1;
     else if (x >= *(grid.end()-1)) return grid.size()-1;
     else {
@@ -167,8 +189,8 @@ public:
 	  for (int i=0; i<N; i++) {
 	    if (cell_index[i] < 0) {
 		  f_index[i] = 0;		  
-		} else if (cell_index[i] >= m_gridList[i].size()-1) {
-		  f_index[i] = m_gridList[i].size()-1;		  
+		} else if (cell_index[i] >= m_grid_list[i].size()-1) {
+		  f_index[i] = m_grid_list[i].size()-1;		  
 		} else {
 		  f_index[i] = cell_index[i] + v_index[i];		  
 		}
@@ -177,8 +199,8 @@ public:
 	  for (int i=0; i<N; i++) {
 	    if (cell_index[i] < 0) {
 		  f_index[i] = 0;
-		} else if (cell_index[i] >= m_gridList[i].size()-1) {
-		  f_index[i] = (2*m_gridList[i].size())-1;
+		} else if (cell_index[i] >= m_grid_list[i].size()-1) {
+		  f_index[i] = (2*m_grid_list[i].size())-1;
 		} else {
 		  f_index[i] = 1 + (2*cell_index[i]) + v_index[i];
 		}
@@ -196,18 +218,18 @@ public:
   }	
 };
 
-template <int N, class T, bool CopyData = true, class RefCountT = EmptyClass, bool Continuous = true>
-class InterpSimplex : public NDInterpolator<N,T,CopyData,RefCountT,Continuous> {
+template <int N, class T, bool CopyData = true, bool Continuous = true, class ArrayRefCountT = EmptyClass, class GridRefCountT = EmptyClass>
+class InterpSimplex : public NDInterpolator<N,T,CopyData,Continuous,ArrayRefCountT,GridRefCountT> {
 public:
-  typedef NDInterpolator<N,T,CopyData,RefCountT,Continuous> super;
+  typedef NDInterpolator<N,T,CopyData,Continuous,ArrayRefCountT,GridRefCountT> super;
   
-  template <class IterT1, class IterT2>  
-  InterpSimplex(IterT1 begins_begin, IterT1 begins_end, IterT1 ends_begin, IterT2 f_begin, IterT2 f_end)
-    : super(begins_begin, begins_end, ends_begin, f_begin, f_end)
+  template <class IterT1, class IterT2, class IterT3>  
+  InterpSimplex(IterT1 grids_begin, IterT2 grids_len_begin, IterT3 f_begin, IterT3 f_end)
+    : super(grids_begin, grids_len_begin, f_begin, f_end)
   {}
-  template <class IterT1, class IterT2>  
-  InterpSimplex(IterT1 begins_begin, IterT1 begins_end, IterT1 ends_begin, IterT2 f_begin, IterT2 f_end, RefCountT &refF)
-    : super(begins_begin, begins_end, ends_begin, f_begin, f_end, refF)
+  template <class IterT1, class IterT2, class IterT3, class RefCountIterT>  
+  InterpSimplex(IterT1 grids_begin, IterT2 grids_len_begin, IterT3 f_begin, IterT3 f_end, ArrayRefCountT &refF, RefCountIterT ref_begins)
+    : super(grids_begin, grids_len_begin, f_begin, f_end, refF, ref_begins)
   {}
   
   template <class IterT1, class IterT2>
@@ -220,8 +242,8 @@ public:
 	T y, v0, v1;
 	for (int i=0; i<n; i++) {			// for each point
 	  for (int dim=0; dim<N; dim++) {
-	    typename super::grid_type const &grid(super::m_gridList[dim]);
-		c = find_cell(dim, coord_iter_begin[dim][i]);
+	    typename super::grid_type const &grid(super::m_grid_list[dim]);
+		c = this->find_cell(dim, coord_iter_begin[dim][i]);
 		if (c == -1) {					// before first grid point
 		  y = 1.0;
 		} else if (c == grid.size()-1) {	// after last grid point
@@ -243,11 +265,11 @@ public:
       for (int j=0; j<N; j++) {
         v_index[j] = 1;
       }		      
-	  v0 = get_f_val(cell_index, v_index);
+	  v0 = this->get_f_val(cell_index, v_index);
 	  y = v0;
       for (int j=0; j<N; j++) {
 	    v_index[xipair[j].second]--;		
-		v1 = get_f_val(cell_index, v_index);
+		v1 = this->get_f_val(cell_index, v_index);
 	    y += (1.0 - xipair[j].first) * (v1-v0);		// interpolate
 		v0 = v1;
 	  }
@@ -256,18 +278,18 @@ public:
   }  
 };
 
-template <int N, class T, bool CopyData = true, class RefCountT = EmptyClass, bool Continuous = true>
-class InterpMultilinear : public NDInterpolator<N,T,CopyData,RefCountT,Continuous> {
+template <int N, class T, bool CopyData = true, bool Continuous = true, class ArrayRefCountT = EmptyClass, class GridRefCountT = EmptyClass>
+class InterpMultilinear : public NDInterpolator<N,T,CopyData,Continuous,ArrayRefCountT,GridRefCountT> {
 public:
-  typedef NDInterpolator<N,T,CopyData,RefCountT,Continuous> super;
+  typedef NDInterpolator<N,T,CopyData,Continuous,ArrayRefCountT,GridRefCountT> super;
   
-  template <class IterT1, class IterT2>  
-  InterpMultilinear(IterT1 begins_begin, IterT1 begins_end, IterT1 ends_begin, IterT2 f_begin, IterT2 f_end)
-    : super(begins_begin, begins_end, ends_begin, f_begin, f_end)
+  template <class IterT1, class IterT2, class IterT3>  
+  InterpMultilinear(IterT1 grids_begin, IterT2 grids_len_begin, IterT3 f_begin, IterT3 f_end)
+    : super(grids_begin, grids_len_begin, f_begin, f_end)
   {}
-  template <class IterT1, class IterT2>  
-  InterpMultilinear(IterT1 begins_begin, IterT1 begins_end, IterT1 ends_begin, IterT2 f_begin, IterT2 f_end, RefCountT &refF)
-    : super(begins_begin, begins_end, ends_begin, f_begin, f_end, refF)
+  template <class IterT1, class IterT2, class IterT3, class RefCountIterT>  
+  InterpMultilinear(IterT1 grids_begin, IterT2 grids_len_begin, IterT3 f_begin, IterT3 f_end, ArrayRefCountT &refF, RefCountIterT ref_begins)
+    : super(grids_begin, grids_len_begin, f_begin, f_end, refF, ref_begins)
   {}
 
   template <class IterT1, class IterT2>
@@ -298,9 +320,9 @@ public:
 	
 	for (int i=0; i<n; i++) {								// loop over each point
 	  for (int dim=0; dim<N; dim++) {						// loop over each dimension
-	    auto const &grid(super::m_gridList[dim]);		
+	    auto const &grid(super::m_grid_list[dim]);		
 		xi = coord_iter_begin[dim][i];
-		c = find_cell(dim, coord_iter_begin[dim][i]);
+		c = this->find_cell(dim, coord_iter_begin[dim][i]);
 		if (c == -1) {					// before first grid point
 		  y = 1.0;
 		} else if (c == grid.size()-1) {	// after last grid point
@@ -315,7 +337,7 @@ public:
 	  }
 	  // copy f values at vertices
 	  for (int v=0; v < (1 << N); v++) {					// loop over each vertex of hypercube
-        f[v] = get_f_val(index, v);
+        f[v] = this->get_f_val(index, v);
 	  }
 	  *i_result++ = linterp_nd_unitcube(f.begin(), f.end(), x.begin(), x.end());
 	}
@@ -332,6 +354,45 @@ typedef InterpMultilinear<2,double> NDInterpolator_2_ML;
 typedef InterpMultilinear<3,double> NDInterpolator_3_ML;
 typedef InterpMultilinear<4,double> NDInterpolator_4_ML;
 typedef InterpMultilinear<5,double> NDInterpolator_5_ML;
+
+// C interface
+extern "C" {
+  void linterp_simplex_1(double **grids_begin, int *grid_len_begin, double *pF, int xi_len, double **xi_begin, double *pResult);
+  void linterp_simplex_2(double **grids_begin, int *grid_len_begin, double *pF, int xi_len, double **xi_begin, double *pResult);
+  void linterp_simplex_3(double **grids_begin, int *grid_len_begin, double *pF, int xi_len, double **xi_begin, double *pResult);  
+}
+
+void linterp_simplex_1(double **grids_begin, int *grid_len_begin, double *pF, int xi_len, double **xi_begin, double *pResult) {
+  const int N=1;
+  size_t total_size = 1;  
+  for (int i=0; i<N; i++)	{     
+	total_size *= grid_len_begin[i];
+  }      
+  InterpSimplex<N, double, false> interp_obj(grids_begin, grid_len_begin, pF, pF + total_size);
+  interp_obj.interp_vec(xi_len, xi_begin, xi_begin + N, pResult);
+}
+
+void linterp_simplex_2(double **grids_begin, int *grid_len_begin, double *pF, int xi_len, double **xi_begin, double *pResult) {
+  const int N=2;
+  size_t total_size = 1;  
+  for (int i=0; i<N; i++)	{     
+	total_size *= grid_len_begin[i];
+  }      
+  InterpSimplex<N, double, false> interp_obj(grids_begin, grid_len_begin, pF, pF + total_size);
+  interp_obj.interp_vec(xi_len, xi_begin, xi_begin + N, pResult);
+}
+
+void linterp_simplex_3(double **grids_begin, int *grid_len_begin, double *pF, int xi_len, double **xi_begin, double *pResult) {
+  const int N=3;
+  size_t total_size = 1;  
+  for (int i=0; i<N; i++)	{     
+	total_size *= grid_len_begin[i];
+  }      
+  InterpSimplex<N, double, false> interp_obj(grids_begin, grid_len_begin, pF, pF + total_size);
+  interp_obj.interp_vec(xi_len, xi_begin, xi_begin + N, pResult);
+}
+
+
 
 
 #endif //_linterp_h
