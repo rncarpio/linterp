@@ -240,15 +240,18 @@ public:
 	array<std::pair<T, int>,N> xipair;	
 	int c;
 	T y, v0, v1;
+	//mexPrintf("%d\n", n);
 	for (int i=0; i<n; i++) {			// for each point
 	  for (int dim=0; dim<N; dim++) {
 	    typename super::grid_type const &grid(super::m_grid_list[dim]);
 		c = this->find_cell(dim, coord_iter_begin[dim][i]);
+		//mexPrintf("%d\n", c);
 		if (c == -1) {					// before first grid point
 		  y = 1.0;
 		} else if (c == grid.size()-1) {	// after last grid point
 		  y = 0.0;
 		} else {
+		  //mexPrintf("%f %f\n", grid[c], grid[c+1]);
 		  y = (coord_iter_begin[dim][i] - grid[c]) / (grid[c + 1] - grid[c]);
 		  if (y < 0.0) y=0.0;
 		  else if (y > 1.0) y=1.0;
