@@ -15,7 +15,7 @@ linterp_test: linterp_test.o
 	$(CXX) -c $(CXXFLAGS) $(INCLUDES) $^
 
 linterp_python.dll: linterp_python.o
-	$(CXX) -shared -o $@ $(BOOST_PYTHON_LIB) $^
+	$(CXX) -shared -o $@ $^
 	
 all:	linterp_test
 #linterp_python.dll
