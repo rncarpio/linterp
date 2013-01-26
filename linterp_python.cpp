@@ -69,11 +69,127 @@ typedef NDInterpolator_wrap<InterpMultilinear<1,double,false,true,dPyArr,dPyArr>
 typedef NDInterpolator_wrap<InterpMultilinear<2,double,false,true,dPyArr,dPyArr> > NDInterpolator_2_ML_wrap;
 typedef NDInterpolator_wrap<InterpMultilinear<3,double,false,true,dPyArr,dPyArr> > NDInterpolator_3_ML_wrap;
 
+//////////////////////////////////////////////////////////////////////////////////////////////
+// Python glue code
+
+// vector of T -> Python list
+template <class VecT>
+struct vec_to_list {
+  static PyObject* convert(VecT const &vec) {
+    bpl::list result;
+	typename VecT::const_iterator iter;
+	for (iter=vec.begin(); iter != vec.end(); iter++) {
+	  result.append(*iter);
+	}
+    return boost::python::incref(result.ptr());
+  }
+};
+
+// Python list of numpy arrays -> vector<dVec>
+struct dVecVec_from_python_list {
+  static void *check(PyObject *pObj) {    
+    if (!PyList_Check(pObj)) {
+	  return NULL;
+	} else {
+	  bpl::handle<> h(bpl::borrowed(pObj));
+	  bpl::list l(h);
+	  for (int i=0; i<bpl::len(l); i++) {
+	    bpl::object obj(l[i]);
+	    if (!PyArray_Check(obj.ptr())) {
+		  return NULL;
+		}
+	  }
+	}
+	return pObj;
+  }
+  static void construct(PyObject *pObj, boost::python::converter::rvalue_from_python_stage1_data* data) {
+	bpl::handle<> h(bpl::borrowed(pObj));
+	bpl::list l(h);
+	void *storage = ((boost::python::converter::rvalue_from_python_storage<vector<dVec>>*)data)->storage.bytes;
+    new (storage) vector<dVec>(bpl::len(l));
+	vector<dVec> *pVec = static_cast<vector<dVec>*>(storage);
+	data->convertible = storage;
+	// copy elements
+	for (int i=0; i<bpl::len(l); i++) {	  
+	  dPyArr a = bpl::extract<dPyArr>(l[i]);
+	  (*pVec)[i].resize(a.size());
+	  std::copy(a.begin(), a.end(), (*pVec)[i].begin());	  
+	}
+  }    
+};
+
+// Python list of numpy arrays -> vector<dPyArr>
+struct dPyArrVec_from_python_list {
+  static void *check(PyObject *pObj) {    
+    if (!PyList_Check(pObj)) {
+	  return NULL;
+	} else {
+	  bpl::handle<> h(bpl::borrowed(pObj));
+	  bpl::list l(h);
+	  for (int i=0; i<bpl::len(l); i++) {
+	    bpl::object obj(l[i]);
+	    if (!PyArray_Check(obj.ptr())) {
+		  return NULL;
+		}
+	  }
+	}
+	return pObj;
+  }
+  static void construct(PyObject *pObj, boost::python::converter::rvalue_from_python_stage1_data* data) {
+	bpl::handle<> h(bpl::borrowed(pObj));
+	bpl::list l(h);
+	void *storage = ((boost::python::converter::rvalue_from_python_storage<vector<dVec>>*)data)->storage.bytes;
+    new (storage) vector<dPyArr>(bpl::len(l));
+	vector<dPyArr> *pVec = static_cast<vector<dPyArr>*>(storage);
+	data->convertible = storage;
+	// copy elements
+	for (int i=0; i<bpl::len(l); i++) {
+      (*pVec)[i] = bpl::extract<dPyArr>(l[i]);
+	}
+  }    
+};
+
 BOOST_PYTHON_MODULE(_linterp_python)
 {   
+  bpl::to_python_converter<dVec, vec_to_list<dVec>>();		// vec of doubles to list  
+  bpl::to_python_converter<iVec, vec_to_list<iVec>>();		// vec of ints to list
+  bpl::to_python_converter<dPyArrVector, vec_to_list<dPyArrVector>>();		// vec of pyublas arrays
+  bpl::to_python_converter<array<double,2>, vec_to_list<array<double,2>>>();
+  bpl::to_python_converter<array<double,3>, vec_to_list<array<double,3>>>();
+  bpl::to_python_converter<array<double,4>, vec_to_list<array<double,4>>>();
+  bpl::to_python_converter<array<double,5>, vec_to_list<array<double,5>>>();
+  bpl::to_python_converter<array<double,6>, vec_to_list<array<double,6>>>();
+  bpl::to_python_converter<array<int,2>, vec_to_list<array<int,2>>>();
+  bpl::to_python_converter<array<int,3>, vec_to_list<array<int,3>>>();  
+  bpl::to_python_converter<array<int,4>, vec_to_list<array<int,4>>>();
+  bpl::to_python_converter<array<int,5>, vec_to_list<array<int,5>>>();
+  bpl::to_python_converter<array<int,6>, vec_to_list<array<int,6>>>();
+  bpl::to_python_converter<array<int,7>, vec_to_list<array<int,7>>>();
+  
+  bpl::converter::registry::push_back(&dVecVec_from_python_list::check, &dVecVec_from_python_list::construct, bpl::type_id<vector<dVec> >());
+  bpl::converter::registry::push_back(&dPyArrVec_from_python_list::check, &dPyArrVec_from_python_list::construct, bpl::type_id<vector<dPyArr> >());
+
+  
     bpl::class_<NDInterpolator_1_S_wrap, boost::noncopyable>("Interp_1_S", bpl::init<vector<dPyArr>, dPyArr>())
+		.def("interp_vec", &NDInterpolator_1_S_wrap::interp_vec) 
+	;
+    bpl::class_<NDInterpolator_2_S_wrap, boost::noncopyable>("Interp_2_S", bpl::init<vector<dPyArr>, dPyArr>())
+		.def("interp_vec", &NDInterpolator_2_S_wrap::interp_vec) 
+	;
+    bpl::class_<NDInterpolator_3_S_wrap, boost::noncopyable>("Interp_3_S", bpl::init<vector<dPyArr>, dPyArr>())
+		.def("interp_vec", &NDInterpolator_3_S_wrap::interp_vec) 
+	;
+
+    bpl::class_<NDInterpolator_1_ML_wrap, boost::noncopyable>("Interp_1_ML", bpl::init<vector<dPyArr>, dPyArr>())
 		.def("interp_vec", &NDInterpolator_1_ML_wrap::interp_vec) 
 	;
+    bpl::class_<NDInterpolator_2_ML_wrap, boost::noncopyable>("Interp_2_ML", bpl::init<vector<dPyArr>, dPyArr>())
+		.def("interp_vec", &NDInterpolator_2_ML_wrap::interp_vec) 
+	;
+    bpl::class_<NDInterpolator_3_ML_wrap, boost::noncopyable>("Interp_3_ML", bpl::init<vector<dPyArr>, dPyArr>())
+		.def("interp_vec", &NDInterpolator_3_ML_wrap::interp_vec) 
+	;
+	
 }
 
 
