@@ -1,0 +1,107 @@
+
+typedef numeric::ublas::array_adaptor<double> dArrayAdaptor;
+
+struct PythonException {
+};
+
+#define bpl_assert(exp, s)	\
+	if (!(exp)) {				\
+      PyErr_SetString(PyExc_ValueError, (s));	\
+      throw PythonException();	\
+	}	
+
+// a simple function to adapt a NumPy array to a ublas storage type. Does no reference counting.
+template <class T>
+numeric::ublas::array_adaptor<T> numpy_array_adaptor(PyObject const *p_obj) {  
+  bpl_assert(PyArray_Check(p_obj), "not a numpy array");
+  PyArrayObject *p_array_obj = (PyArrayObject*) p_obj;
+  bpl_assert(PyArray_ISCONTIGUOUS(p_array_obj), "array must be C-style contiguous");
+  bpl_assert(sizeof(T) == PyArray_ITEMSIZE(p_array_obj), "item size does not match");
+  return numeric::ublas::array_adaptor<T>(PyArray_Size(p_array_obj), PyArray_BYTES(p_array_obj));
+}
+
+// adapts a NumPy array to a boost::multi_array_ref.  number of dimensions is known at compile time
+template <int N, class T> 
+boost::multi_array_ref<T, N> numpy_multi_array_adaptor(PyObject const *p_obj) {  
+  bpl_assert(PyArray_Check(p_obj), "not a numpy array");
+  PyArrayObject *p_array_obj = (PyArrayObject*) p_obj;
+  bpl_assert(PyArray_ISCONTIGUOUS(p_array_obj), "array must be C-style contiguous");
+  bpl_assert(sizeof(T) == PyArray_ITEMSIZE(p_array_obj), "item size does not match");
+  bpl_assert(p_array_obj->nd == N, "array dimensions do not match");
+  array<int,N> sizes;
+  for (int i=0; i<N; i++) {    
+    sizes[i] = PyArray_DIM(p_array_obj, i);
+  }
+  return boost::multi_array_ref<T, N>(PyArray_BYTES(p_array_obj), sizes);
+}
+
+// extract a sequence of 1d arrays
+vector<dArrayAdaptor> get_darr_sequence(PyObject const *p_sequence) {
+  vector<dArrayAdaptor> result;
+  PyObject *item;
+  int n = PySequence_Length(sequence);
+  bpl_assert(
+  for (int i=0; i<n; i++) {
+    item = PySequence_GetItem(sequence, i);
+    result.push_back(numpy_array_adaptor(item));
+	Py_DECREF(item); /* Discard reference ownership */
+  }
+  return result;
+}
+
+
+template <int N>
+PyObject *linterp(PyObject *self, PyObject *args) {  
+  PyArrayObject *p_grids, *p_f, *p_xi;
+                                                     
+  if (!PyArg_ParseTuple(args, "OOO:linterp", &p_grids, &p_f, &p_xi)) {
+    return NULL;
+  }
+  try {
+    vector<dArrayAdaptor> grid_list = get_darr_sequence(p_grids);
+    boost::multi_array_ref<double, 1> f = numpy_multi_array_adaptor(p_f);
+    vector<dArrayAdaptor> xi = get_darr_sequence(p_xi);	
+	bpl_assert(grid_list.size() == xi.size(), "dimensions don't match");
+  } catch (PythonException ex) {
+    return NULL;
+  }
+  const double* grids_begin[N];
+  int grid_len_list[N];
+  const double* xi_list[N];
+  size_t min_len = xi[0].size();
+  for (int i=0; i<N; i++) {
+    grids_begin[i] = &(grid_list[i][0]);
+    grid_len_list[i] = grids[i].size();
+	xi_list[i] = &(xi[i][0]);
+	min_len = (xi.size() < min_len) ? xi.size() : min_len;
+  }
+  int dims[1] = { xi[0].size() };
+  PyObject *p_result = PyArray_ZEROS(1, dims, NPY_DOUBLE, 0);
+  if (p_result != NULL) {
+    double *p_data = PyArray_BYTES(p_result);
+    InterpSimplex<N, double, false> interp_obj(grids_begin, gridgrid_len_list, f.origin(), f.origin() + f.num_elements());
+    interp_obj.interp_vec(min_len, xi_list.begin(), xi_list.end(), p_data);    
+  }
+  return p_result;
+}
+
+
+PyMethodDef methods[] = {
+  {"linterp1", linterp<1>, METH_VARARGS},
+  {"linterp2", linterp<2>, METH_VARARGS},
+  {"linterp3", linterp<3>, METH_VARARGS},
+  {NULL, NULL},                    
+};
+  
+#ifdef __cplusplus
+extern "C" {      
+#endif      
+      
+void initlinterp_python() {
+  import_array();        
+  (void)Py_InitModule("linterp_python", methods);
+}                                            
+ 
+#ifdef __cplusplus
+}                 
+#endif
