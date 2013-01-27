@@ -1,6 +1,11 @@
 
 DEBUG = 0
-COMPILER = msvc
+
+ifeq ($(OS),Windows_NT)
+	COMPILER = msvc
+else
+	COMPILER = gcc
+endif
 
 ifeq ($(COMPILER), gcc)	
 	BOOST_DIR = $(HOME)/local/src/boost_1_51_0
@@ -18,14 +23,15 @@ endif
 PYUBLAS_INC_DIR = .
 INCLUDES = -I$(BOOST_INC_DIR) -I$(PYUBLAS_INC_DIR) \
 	$(foreach dir, $(PYTHON_INC_DIRS), -I$(dir))
-PYTHON_LIB = python27
 BOOST_LIB_DIR = $(BOOST_DIR)/lib
 ifeq ($(COMPILER), gcc)	
+	PYTHON_LIB = python2.7
 	BOOST_PYTHON_LIB = boost_python
-	LIB_PATHS = $(HOME)/local/lib
+	LIB_PATHS = $(HOME)/local/lib $(HOME)/local/src/boost_1_51_0/stage/lib
 	LIBS = -l$(BOOST_PYTHON_LIB) -l$(PYTHON_LIB)
 	LIB_DIRS = $(foreach dir, $(LIB_PATHS), -L$(dir))
 else	
+	PYTHON_LIB = python27
 	BOOST_PYTHON_LIB = boost_python-vc100-mt-1_49
 	LIB_PATHS = $(BOOST_LIB_DIR) $(PYTHON_LIB_DIRS)
 	LIB_NAMES = $(BOOST_PYTHON_LIB) $(PYTHON_LIB)
@@ -34,6 +40,13 @@ else
 endif
 
 BUILD_DIR = build
+ifeq ($(COMPILER), msvc)	
+	EXE_PREFIX = .exe
+	DL_PREFIX = .pyd
+else
+	EXE_PREFIX = 
+	DL_PREFIX = .so
+endif
 
 #############################
 # compile/link flags
@@ -45,9 +58,9 @@ ifeq ($(COMPILER), gcc)
 	LINK = g++	
 	LINKFLAGS = -shared $(LINKFLAGS_EXE)
 	ifeq ($(DEBUG), 0)
-		CXXFLAGS = -O2 -std=c++11
+		CXXFLAGS = -O2 -fPIC -std=c++11
 	else
-		CXXFLAGS = -g -std=c++11
+		CXXFLAGS = -g -fPIC -std=c++11
 	endif
 else ifeq ($(COMPILER), msvc)
 	CC = cl.exe
@@ -79,13 +92,14 @@ $(BUILD_DIR)/%.o: %.cpp %.h
 $(BUILD_DIR)/%.o: %.cpp
 	$(CXX) -c $(CXXFLAGS) $(INCLUDES) $< -o $@
 
-$(BUILD_DIR)/_%.pyd:	$(BUILD_DIR)/%.o
+$(BUILD_DIR)/_%$(DL_SUFFIX):	$(BUILD_DIR)/%.o
 	$(LINK) -o $@ $< $(LINKFLAGS) $(LIB_DIRS) $(LIBS)
 
 $(BUILD_DIR)/%:	$(BUILD_DIR)/%.o
 	$(LINK) $(LINKFLAGS_EXE) $(LIB_DIRS) $(LIBS) $< -o $@
 
 EXE_PREFIX = 
+DL_PREFIX = .so
 	
 else ifeq ($(COMPILER), msvc)
 
@@ -95,14 +109,14 @@ $(BUILD_DIR)/%.obj: %.cpp %.h
 $(BUILD_DIR)/%.obj: %.cpp
 	$(CXX) /c $(CXXFLAGS) $(INCLUDES) /Tp$< /Fo$@
 
-$(BUILD_DIR)/_%.pyd: $(BUILD_DIR)/%.obj 
+$(BUILD_DIR)/_%$(DL_SUFFIX): $(BUILD_DIR)/%.obj 
 	$(LINK) $(LINKFLAGS) $(LIB_DIRS) $(LIBS) $< /OUT:$@ 
-#IMPLIB:$(BUILD_DIR)/_$*.lib MANIFESTFILE:$(BUILD_DIR)/_$*.pyd.manifest
+#IMPLIB:$(BUILD_DIR)/_$*.lib MANIFESTFILE:$(BUILD_DIR)/_$*.$(DL_SUFFIX).manifest
 
 $(BUILD_DIR)/%.exe: $(BUILD_DIR)/%.obj
 	$(LINK) $(LINKFLAGS_EXE) $(LIB_DIRS) $(LIBS) $< /OUT:$@
 
-EXE_PREFIX = .exe
+
 	
 endif
 
@@ -116,7 +130,7 @@ EXE_FILES = $(foreach target, $(EXE_TARGETS), $(BUILD_DIR)/$(target)$(EXE_PREFIX
 $(BUILD_DIR):
 	mkdir $(BUILD_DIR)
 
-all: $(BUILD_DIR) $(EXE_FILES) $(BUILD_DIR)/_linterp_python.pyd
+all: $(BUILD_DIR) $(EXE_FILES) $(BUILD_DIR)/_linterp_python$(DL_SUFFIX)
 
 clean:
 ifeq ($(COMPILER), gcc)
