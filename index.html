@@ -48,7 +48,9 @@
 </li>
 </ul><h3>Python interface</h3>
 
-<p>A Python interface is provided, using Andreas Klöckner's <a href="http://mathema.tician.de/software/pyublas">pyublas</a> library.  Scipy's <a href="http://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.griddata.html">griddata</a> command provides similar functionality and can interpolate unstructured data, but is slower and can handle fewer points. </p>
+<p>A Python interface is provided, using Andreas Klöckner's <a href="http://mathema.tician.de/software/pyublas">pyublas</a> library.  Scipy's <a href="http://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.griddata.html">griddata</a> command provides similar functionality and can interpolate unstructured data, but is slower and can handle fewer points.</p>
+
+<p>An example: </p>
 
 <pre><code>import _linterp_python as _linterp
 x = scipy.linspace(-3, 3, 10)
@@ -60,7 +62,8 @@ scatter(x, y)
 scatter(xi, yi, marker='x')
 </code></pre>
 
-<p><img src="https://raw.github.com/rncarpio/linterp/master/example1.png" alt=""></p>
+<p>produces
+<img src="https://raw.github.com/rncarpio/linterp/master/example1.png" alt=""></p>
 
 <h3>Matlab interface</h3>
       </section>
