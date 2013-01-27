@@ -42,10 +42,10 @@ endif
 BUILD_DIR = build
 ifeq ($(COMPILER), msvc)	
 	EXE_PREFIX = .exe
-	DL_PREFIX = .pyd
+	DL_SUFFIX = .pyd
 else
 	EXE_PREFIX = 
-	DL_PREFIX = .so
+	DL_SUFFIX = .so
 endif
 
 #############################
@@ -92,15 +92,12 @@ $(BUILD_DIR)/%.o: %.cpp %.h
 $(BUILD_DIR)/%.o: %.cpp
 	$(CXX) -c $(CXXFLAGS) $(INCLUDES) $< -o $@
 
-$(BUILD_DIR)/_%$(DL_SUFFIX):	$(BUILD_DIR)/%.o
+_%$(DL_SUFFIX):	$(BUILD_DIR)/%.o
 	$(LINK) -o $@ $< $(LINKFLAGS) $(LIB_DIRS) $(LIBS)
 
 $(BUILD_DIR)/%:	$(BUILD_DIR)/%.o
 	$(LINK) $(LINKFLAGS_EXE) $(LIB_DIRS) $(LIBS) $< -o $@
 
-EXE_PREFIX = 
-DL_PREFIX = .so
-	
 else ifeq ($(COMPILER), msvc)
 
 $(BUILD_DIR)/%.obj: %.cpp %.h
@@ -109,14 +106,12 @@ $(BUILD_DIR)/%.obj: %.cpp %.h
 $(BUILD_DIR)/%.obj: %.cpp
 	$(CXX) /c $(CXXFLAGS) $(INCLUDES) /Tp$< /Fo$@
 
-$(BUILD_DIR)/_%$(DL_SUFFIX): $(BUILD_DIR)/%.obj 
+_%$(DL_SUFFIX): $(BUILD_DIR)/%.obj 
 	$(LINK) $(LINKFLAGS) $(LIB_DIRS) $(LIBS) $< /OUT:$@ 
 #IMPLIB:$(BUILD_DIR)/_$*.lib MANIFESTFILE:$(BUILD_DIR)/_$*.$(DL_SUFFIX).manifest
 
 $(BUILD_DIR)/%.exe: $(BUILD_DIR)/%.obj
 	$(LINK) $(LINKFLAGS_EXE) $(LIB_DIRS) $(LIBS) $< /OUT:$@
-
-
 	
 endif
 
@@ -130,7 +125,7 @@ EXE_FILES = $(foreach target, $(EXE_TARGETS), $(BUILD_DIR)/$(target)$(EXE_PREFIX
 $(BUILD_DIR):
 	mkdir $(BUILD_DIR)
 
-all: $(BUILD_DIR) $(EXE_FILES) $(BUILD_DIR)/_linterp_python$(DL_SUFFIX)
+all: $(BUILD_DIR) $(EXE_FILES) _linterp_python$(DL_SUFFIX)
 
 clean:
 ifeq ($(COMPILER), gcc)
