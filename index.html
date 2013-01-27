@@ -37,9 +37,10 @@
 
 <ul>
 <li>Multilinear: Interpolate using the N-dimensional hypercube containing the point. The interpolation step is O(2^N), but more accurate.</li>
-<li>Simplicial: Interpolate using the N-dimensional simplex containing the point. The interpolation step is O(N log N), so this algorithm becomes much faster in higher dimensions, at the cost of decreased accuracy.
-Requires the <a href="www.boost.org/libs/multi_array">boost.multi_array</a> library.</li>
-</ul><p>For a description of the two interpolation algorithms, see:</p>
+<li>Simplicial: Interpolate using the N-dimensional simplex containing the point. The interpolation step is O(N log N), so this algorithm becomes much faster in higher dimensions, at the cost of decreased accuracy.</li>
+</ul><p>Requires the <a href="www.boost.org/libs/multi_array">boost.multi_array</a> library.</p>
+
+<p>For a description of the two interpolation algorithms, see:</p>
 
 <ul>
 <li>Weiser &amp; Zarantonello (1988), "A Note on Piecewise Linear and Multilinear Table Interpolation in Many Dimensions", <em>Mathematics of Computation</em> 50 (181), p. 189-196</li>
@@ -47,14 +48,21 @@ Requires the <a href="www.boost.org/libs/multi_array">boost.multi_array</a> libr
 </li>
 </ul><h3>Python interface</h3>
 
-<p>A Python interface is provided, using Andreas Klöckner's <a href="http://mathema.tician.de/software/pyublas">pyublas</a> library.</p>
+<p>A Python interface is provided, using Andreas Klöckner's <a href="http://mathema.tician.de/software/pyublas">pyublas</a> library.  Scipy's <a href="http://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.griddata.html">griddata</a> command provides similar functionality and can interpolate unstructured data, but is slower and can handle fewer points. </p>
+
+<pre><code>import _linterp_python as _linterp
+x = scipy.linspace(-3, 3, 10)
+xi = scipy.linspace(-3.5, 3.5, 30)
+y = scipy.sin(x)
+f = _linterp.Interp_1_ML([x], y)
+yi = f.interp_vec([xi])
+scatter(x, y)
+scatter(xi, yi, marker='x')
+</code></pre>
+
+<p></p>
 
 <h3>Matlab interface</h3>
-
-<pre><code>$ cd your_repo_root/repo_name
-$ git fetch origin
-$ git checkout gh-pages
-</code></pre>
       </section>
     </div>
 
