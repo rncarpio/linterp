@@ -8,6 +8,8 @@ that both that copyright notice and this permission notice appear
 in supporting documentation.  The authors make no representations
 about the suitability of this software for any purpose.          
 It is provided "as is" without express or implied warranty.
+
+Project page: http://rncarpio.github.com/linterp
                                                             
 This is a C++ header-only library for N-dimensional linear interpolation on a rectangular grid. Implements two methods:
 * Multilinear: Interpolate using the N-dimensional hypercube containing the point. Interpolation step is O(2^N) 
