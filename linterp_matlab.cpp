@@ -45,7 +45,9 @@ void mexFunction( int nlhs, mxArray *plhs[],
   
   // F array
   if (total_size != mxGetNumberOfElements(prhs[n_dims])) {
-    mexErrMsgTxt("array sizes do not match");
+    char pcTemp[1024];
+	sprintf(pcTemp, "array sizes do not match. total_size=%d, mxGetNumberOfElements=%d", total_size, mxGetNumberOfElements(prhs[n_dims]));
+    mexErrMsgTxt(pcTemp);
   }
   const double *p_F = mxGetPr(prhs[n_dims]);
   
@@ -64,15 +66,15 @@ void mexFunction( int nlhs, mxArray *plhs[],
   // call interp
   if (n_dims == 1) {
     const int N = 1;
-    InterpSimplex<N, double, false> interp_obj(grid_list.begin(), grid_len_list.begin(), p_F, p_F + total_size);
+    InterpMultilinear<N, double, false> interp_obj(grid_list.begin(), grid_len_list.begin(), p_F, p_F + total_size);
     interp_obj.interp_vec(min_len, xi_list.begin(), xi_list.end(), p_result);    
   } else if (n_dims == 2) {
     const int N = 2;
-    InterpSimplex<N, double, false> interp_obj(grid_list.begin(), grid_len_list.begin(), p_F, p_F + total_size);
+    InterpMultilinear<N, double, false> interp_obj(grid_list.begin(), grid_len_list.begin(), p_F, p_F + total_size);
     interp_obj.interp_vec(min_len, xi_list.begin(), xi_list.end(), p_result);    
   } else if (n_dims == 3) {
     const int N = 3;
-    InterpSimplex<N, double, false> interp_obj(grid_list.begin(), grid_len_list.begin(), p_F, p_F + total_size);
+    InterpMultilinear<N, double, false> interp_obj(grid_list.begin(), grid_len_list.begin(), p_F, p_F + total_size);
     interp_obj.interp_vec(min_len, xi_list.begin(), xi_list.end(), p_result);    
   } else {
     mexErrMsgTxt("dimension not implemented");

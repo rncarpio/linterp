@@ -16,24 +16,6 @@ from mpl_toolkits.mplot3d import Axes3D
 import pyublas, _linterp_python as _linterp
 import itertools, time, operator
 		
-# class LinInterp_1D(_linterp.Interp_1_S):
-	# def __init__(self, gridList, fArray):
-		# checkArraySize(1, gridList, fArray)
-		# super(LinInterp_1D,self).__init__(gridList, fArray)
-		# (self.gridList, self.fArray) = (gridList, fArray)
-
-# class LinInterp_2D(_linterp.Interp_2_S):
-	# def __init__(self, gridList, fArray):
-		# checkArraySize(2, gridList, fArray)
-		# super(LinInterp_2D,self).__init__(gridList, fArray)
-		# (self.gridList, self.fArray) = (gridList, fArray)		
-
-# class LinInterp_3D(_linterp.Interp_3_S):
-	# def __init__(self, gridList, fArray):
-		# checkArraySize(3, gridList, fArray)
-		# super(LinInterp_3D,self).__init__(gridList, fArray)
-		# (self.gridList, self.fArray) = (gridList, fArray)
-
 # test functions for interpolation
 def nd_sin_sum(x):
 	s = x[0]
@@ -130,7 +112,7 @@ def test_nd(n=2, fn=nd_circle_sine, plot=True, timing=False, use_griddata=True, 
 		err_max_i = scipy.argmax(err*err)
 		print("%s: error sum of squares %f" % (title, ss))
 		print("largest error: %f" % err[err_max_i])		
-		if (plot and n==2): plot3d(title, in_ndgrid[0], in_ndgrid[1], err);			
+		if (plot and n==2): plot3d(title + " errors", in_ndgrid[0], in_ndgrid[1], err);			
 		
 def plot3d(title, xlist, ylist, zlist):
 	fig = plt.figure()	
