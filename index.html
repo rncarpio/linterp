@@ -33,7 +33,7 @@
       <section id="main_content" class="inner">
         <h3>What is linterp?</h3>
 
-<p>This is a C++ header-only library for N-dimensional linear interpolation on a rectangular grid, similar to Matlab's <a href="http://www.mathworks.com/help/matlab/ref/interpn.html">interpn</a> command. Arbitrary dimensions are supported, but must be specified as a template parameter at compile time. Two linear interpolation algorithms can be used:</p>
+<p>This is a C++ header-only library for N-dimensional linear interpolation on a rectangular grid, similar to Matlab's <a href="http://www.mathworks.com/help/matlab/ref/interpn.html">interpn</a> command. For interpolation on unstructured data, take a look at <a href="http://rncarpio.github.com/delaunay_linterp/">delaunay_linterp</a>. Arbitrary dimensions are supported, but must be specified as a template parameter at compile time. Two linear interpolation algorithms can be used:</p>
 
 <ul>
 <li>Multilinear: Interpolate using the N-dimensional hypercube containing the point. The interpolation step is O(2^N), but more accurate.</li>
