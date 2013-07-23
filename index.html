@@ -31,14 +31,19 @@
     <!-- MAIN CONTENT -->
     <div id="main_content_wrap" class="outer">
       <section id="main_content" class="inner">
-        <h3>What is linterp?</h3>
+        <p>Project page: <a href="http://rncarpio.github.com/linterp">http://rncarpio.github.com/linterp</a></p>
 
-<p>This is a C++ header-only library for N-dimensional linear interpolation on a rectangular grid, similar to Matlab's <a href="http://www.mathworks.com/help/matlab/ref/interpn.html">interpn</a> command. For interpolation on unstructured data, take a look at <a href="http://rncarpio.github.com/delaunay_linterp/">delaunay_linterp</a>. Arbitrary dimensions are supported, but must be specified as a template parameter at compile time. Two linear interpolation algorithms can be used:</p>
+<h3>
+<a name="what-is-linterp" class="anchor" href="#what-is-linterp"><span class="octicon octicon-link"></span></a>What is <code>linterp</code>?</h3>
+
+<p><code>linterp</code> is a C++ header-only library for N-dimensional linear interpolation on a rectangular grid, similar to Matlab's <a href="http://www.mathworks.com/help/matlab/ref/interpn.html">interpn</a> command. For interpolation on unstructured data, take a look at <a href="http://rncarpio.github.com/delaunay_linterp/">delaunay_linterp</a>. Arbitrary dimensions are supported, but the number of dimensions must be specified as a template parameter at compile time. Two algorithms for computing the interpolated value are available:</p>
 
 <ul>
-<li>Multilinear: Interpolate using the N-dimensional hypercube containing the point. The interpolation step is O(2^N), but more accurate.</li>
-<li>Simplicial: Interpolate using the N-dimensional simplex containing the point. The interpolation step is O(N log N), so this algorithm becomes much faster in higher dimensions, at the cost of decreased accuracy.</li>
-</ul><p>Requires the <a href="http://www.boost.org/libs/multi_array">boost.multi_array</a> library.</p>
+<li>Multilinear: This uses the values at the 2^N vertices of the N-dimensional hypercube containing the point.  In two dimensions, this is equivalent to bilinear interpolation; in 3 dimensions, trilinear, etc. Each interpolation step is O(2^N).</li>
+<li>Simplicial: This uses the values at the N+1 vertices of the N-dimensional simplex containing the point. Each hypercube of the rectangular grid is split into simplices; the simplex containing a point <code>x</code> is determined by sorting the coordinates of <code>x</code>. Each interpolation step is O(N log N). Compared to the multilinear algorithm, this becomes much faster in higher dimensions, at the cost of decreased accuracy (since less neighboring points are used to control the interpolated value). </li>
+</ul><p>The number type is user-specified as a template parameter. The underlying data may be shared or copied.  If a reference-counting scheme is used for the memory containing the underlying data, an optional reference-counting type may be passed as a template parameter.</p>
+
+<p>Requires the <a href="http://www.boost.org/libs/multi_array">boost.multi_array</a> library.</p>
 
 <p>For a description of the two interpolation algorithms, see:</p>
 
@@ -46,26 +51,236 @@
 <li>Weiser &amp; Zarantonello (1988), "A Note on Piecewise Linear and Multilinear Table Interpolation in Many Dimensions", <em>Mathematics of Computation</em> 50 (181), p. 189-196</li>
 <li>Davies (1996), "Multidimensional Triangulation and Interpolation for Reinforcement Learning", <em>Proceedings of Neural Information Processing Systems 1996</em>
 </li>
-</ul><h3>Python interface</h3>
+</ul><h3>
+<a name="c-interface" class="anchor" href="#c-interface"><span class="octicon octicon-link"></span></a>C++ interface</h3>
+
+<p>Here is an example in C++:</p>
+
+<div class="highlight"><pre><span class="cp">#include &lt;ctime&gt;</span>
+<span class="cp">#include "linterp.h"</span>
+
+<span class="c1">// return an evenly spaced 1-d grid of doubles.</span>
+<span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">linspace</span><span class="p">(</span><span class="kt">double</span> <span class="n">first</span><span class="p">,</span> <span class="kt">double</span> <span class="n">last</span><span class="p">,</span> <span class="kt">int</span> <span class="n">len</span><span class="p">)</span> <span class="p">{</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">result</span><span class="p">(</span><span class="n">len</span><span class="p">);</span>
+  <span class="kt">double</span> <span class="n">step</span> <span class="o">=</span> <span class="p">(</span><span class="n">last</span><span class="o">-</span><span class="n">first</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">len</span> <span class="o">-</span> <span class="mi">1</span><span class="p">);</span>
+  <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="n">len</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span> <span class="n">result</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">first</span> <span class="o">+</span> <span class="n">i</span><span class="o">*</span><span class="n">step</span><span class="p">;</span> <span class="p">}</span>
+  <span class="k">return</span> <span class="n">result</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="c1">// the function to interpolate.</span>
+<span class="kt">double</span> <span class="n">fn</span> <span class="p">(</span><span class="kt">double</span> <span class="n">x1</span><span class="p">,</span> <span class="kt">double</span> <span class="n">x2</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="n">sin</span><span class="p">(</span><span class="n">x1</span> <span class="o">+</span> <span class="n">x2</span><span class="p">);</span> <span class="p">}</span>
+
+<span class="kt">int</span> <span class="n">main</span> <span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">**</span><span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">const</span> <span class="kt">int</span> <span class="n">length</span> <span class="o">=</span> <span class="mi">10</span><span class="p">;</span>
+
+  <span class="c1">// construct the grid in each dimension. </span>
+  <span class="c1">// note that we will pass in a sequence of iterators pointing to the beginning of each grid</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">grid1</span> <span class="o">=</span> <span class="n">linspace</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">,</span> <span class="n">length</span><span class="p">);</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">grid2</span> <span class="o">=</span> <span class="n">linspace</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">,</span> <span class="n">length</span><span class="p">);</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;::</span><span class="n">iterator</span> <span class="o">&gt;</span> <span class="n">grid_iter_list</span><span class="p">;</span>
+  <span class="n">grid_iter_list</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">grid1</span><span class="p">.</span><span class="n">begin</span><span class="p">());</span>
+  <span class="n">grid_iter_list</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">grid2</span><span class="p">.</span><span class="n">begin</span><span class="p">());</span>
+
+  <span class="c1">// the size of the grid in each dimension</span>
+  <span class="n">array</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span><span class="mi">2</span><span class="o">&gt;</span> <span class="n">grid_sizes</span><span class="p">;</span>
+  <span class="n">grid_sizes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">length</span><span class="p">;</span>
+  <span class="n">grid_sizes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">length</span><span class="p">;</span>
+
+  <span class="c1">// total number of elements</span>
+  <span class="kt">int</span> <span class="n">num_elements</span> <span class="o">=</span> <span class="n">grid_sizes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">grid_sizes</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
+
+  <span class="c1">// fill in the values of f(x) at the gridpoints. </span>
+  <span class="c1">// we will pass in a contiguous sequence, values are assumed to be laid out C-style</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">f_values</span><span class="p">(</span><span class="n">num_elements</span><span class="p">);</span>
+  <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="n">grid_sizes</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">j</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">j</span><span class="o">&lt;</span><span class="n">grid_sizes</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span> <span class="n">j</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+      <span class="n">f_values</span><span class="p">[</span><span class="n">i</span><span class="o">*</span><span class="n">grid_sizes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">fn</span><span class="p">(</span><span class="n">grid1</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">grid2</span><span class="p">[</span><span class="n">j</span><span class="p">]);</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+
+  <span class="c1">// construct the interpolator. the last two arguments are pointers to the underlying data</span>
+  <span class="n">InterpMultilinear</span><span class="o">&lt;</span><span class="mi">2</span><span class="p">,</span> <span class="kt">double</span><span class="o">&gt;</span> <span class="n">interp_ML</span><span class="p">(</span><span class="n">grid_iter_list</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span> <span class="n">grid_sizes</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span> <span class="n">f_values</span><span class="p">.</span><span class="n">data</span><span class="p">(),</span> <span class="n">f_values</span><span class="p">.</span><span class="n">data</span><span class="p">()</span> <span class="o">+</span> <span class="n">num_elements</span><span class="p">);</span>
+
+  <span class="c1">// interpolate one value</span>
+  <span class="n">array</span><span class="o">&lt;</span><span class="kt">double</span><span class="p">,</span><span class="mi">2</span><span class="o">&gt;</span> <span class="n">args</span> <span class="o">=</span> <span class="p">{</span><span class="mf">1.5</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">};</span>
+  <span class="n">printf</span><span class="p">(</span><span class="s">"%f, %f -&gt; %f</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">interp_ML</span><span class="p">.</span><span class="n">interp</span><span class="p">(</span><span class="n">args</span><span class="p">.</span><span class="n">begin</span><span class="p">()));</span>
+
+  <span class="c1">// interpolate multiple values: create sequences for each coordinate</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">interp_grid</span> <span class="o">=</span> <span class="n">linspace</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">,</span> <span class="n">length</span><span class="o">*</span><span class="mi">10</span><span class="p">);</span>
+  <span class="kt">int</span> <span class="n">num_interp_elements</span> <span class="o">=</span> <span class="n">interp_grid</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">*</span> <span class="n">interp_grid</span><span class="p">.</span><span class="n">size</span><span class="p">();</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">interp_x1</span><span class="p">(</span><span class="n">num_interp_elements</span><span class="p">);</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">interp_x2</span><span class="p">(</span><span class="n">num_interp_elements</span><span class="p">);</span>
+  <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="n">interp_grid</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">j</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">j</span><span class="o">&lt;</span><span class="n">interp_grid</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="n">j</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+      <span class="n">interp_x1</span><span class="p">[</span><span class="n">i</span><span class="o">*</span><span class="n">interp_grid</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">+</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">interp_grid</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+      <span class="n">interp_x2</span><span class="p">[</span><span class="n">i</span><span class="o">*</span><span class="n">interp_grid</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">+</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">interp_grid</span><span class="p">[</span><span class="n">j</span><span class="p">];</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">result</span><span class="p">(</span><span class="n">num_interp_elements</span><span class="p">);</span>
+
+  <span class="c1">// pass in a sequence of sequences, one for each coordinate</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="o">&gt;</span> <span class="n">interp_x_list</span><span class="p">;</span>
+  <span class="n">interp_x_list</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">interp_x1</span><span class="p">);</span>
+  <span class="n">interp_x_list</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">interp_x2</span><span class="p">);</span>
+
+  <span class="c1">// interpolate a sequence of values</span>
+  <span class="kt">clock_t</span> <span class="n">t1</span><span class="p">,</span> <span class="n">t2</span><span class="p">;</span>
+  <span class="n">t1</span> <span class="o">=</span> <span class="n">clock</span><span class="p">();</span> 
+  <span class="n">interp_ML</span><span class="p">.</span><span class="n">interp_vec</span><span class="p">(</span><span class="n">num_interp_elements</span><span class="p">,</span> <span class="n">interp_x_list</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span> <span class="n">interp_x_list</span><span class="p">.</span><span class="n">end</span><span class="p">(),</span> <span class="n">result</span><span class="p">.</span><span class="n">begin</span><span class="p">());</span>
+  <span class="n">t2</span> <span class="o">=</span> <span class="n">clock</span><span class="p">();</span>
+  <span class="n">printf</span><span class="p">(</span><span class="s">"multilinear: %d interpolations, %d clocks, %f sec</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">num_interp_elements</span><span class="p">,</span> <span class="p">(</span><span class="n">t2</span><span class="o">-</span><span class="n">t1</span><span class="p">),</span> <span class="p">((</span><span class="kt">double</span><span class="p">)(</span><span class="n">t2</span> <span class="o">-</span> <span class="n">t1</span><span class="p">))</span> <span class="o">/</span> <span class="n">CLOCKS_PER_SEC</span><span class="p">);</span>
+
+  <span class="c1">// calculate the squared errors</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">true_f_vals</span><span class="p">(</span><span class="n">num_interp_elements</span><span class="p">);</span>
+  <span class="kt">double</span> <span class="n">SSE</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">;</span>
+  <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="n">num_interp_elements</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">true_f_vals</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">fn</span><span class="p">(</span><span class="n">interp_x1</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">interp_x2</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
+    <span class="kt">double</span> <span class="n">diff</span> <span class="o">=</span> <span class="n">true_f_vals</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="n">result</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+    <span class="n">SSE</span> <span class="o">+=</span> <span class="n">diff</span><span class="o">*</span><span class="n">diff</span><span class="p">;</span>
+  <span class="p">}</span>
+  <span class="n">printf</span><span class="p">(</span><span class="s">"sum of squared errors: %f</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">SSE</span><span class="p">);</span>
+  <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>produces</p>
+
+<pre><code>1.500000, 1.500000 -&gt; 0.137236
+multilinear: 10000 interpolations, 1 clocks, 0.001000 sec
+sum of squared errors: 1.812171
+</code></pre>
+
+<h3>
+<a name="python-interface" class="anchor" href="#python-interface"><span class="octicon octicon-link"></span></a>Python interface</h3>
 
 <p>A Python interface is provided, using Andreas Klöckner's <a href="http://mathema.tician.de/software/pyublas">pyublas</a> library.  Scipy's <a href="http://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.griddata.html">griddata</a> command provides similar functionality and can interpolate unstructured data, but is slower and can handle fewer points.</p>
 
 <p>An example: </p>
 
-<pre><code>import _linterp_python as _linterp
-x = scipy.linspace(-3, 3, 10)
-xi = scipy.linspace(-3.5, 3.5, 30)
-y = scipy.sin(x)
-f = _linterp.Interp_1_ML([x], y)
-yi = f.interp_vec([xi])
-scatter(x, y)
-scatter(xi, yi, marker='x')
-</code></pre>
+<div class="highlight"><pre><span class="kn">import</span> <span class="nn">_linterp_python</span> <span class="kn">as</span> <span class="nn">_linterp</span>
+<span class="n">x</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
+<span class="n">xi</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mf">3.5</span><span class="p">,</span> <span class="mf">3.5</span><span class="p">,</span> <span class="mi">30</span><span class="p">)</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+<span class="n">f</span> <span class="o">=</span> <span class="n">_linterp</span><span class="o">.</span><span class="n">Interp_1_ML</span><span class="p">([</span><span class="n">x</span><span class="p">],</span> <span class="n">y</span><span class="p">)</span>
+<span class="n">yi</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">interp_vec</span><span class="p">([</span><span class="n">xi</span><span class="p">])</span>
+<span class="n">scatter</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+<span class="n">scatter</span><span class="p">(</span><span class="n">xi</span><span class="p">,</span> <span class="n">yi</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="s">'x'</span><span class="p">)</span>
+</pre></div>
 
 <p>produces
 <img src="https://raw.github.com/rncarpio/linterp/master/example1.png" alt=""></p>
 
-<h3>Matlab interface</h3>
+<h3>
+<a name="matlab-interface" class="anchor" href="#matlab-interface"><span class="octicon octicon-link"></span></a>Matlab interface</h3>
+
+<p>A Matlab interface is provided. To compile it with <code>mex</code>, supply the appropriate include directory for the Boost headers:</p>
+
+<div class="highlight"><pre><span class="n">mex</span> <span class="o">-</span><span class="n">IC</span><span class="p">:</span><span class="o">/</span><span class="n">boost</span><span class="o">/</span><span class="n">boost_1_49_0</span> <span class="n">linterp_matlab</span><span class="p">.</span><span class="n">cpp</span>
+</pre></div>
+
+<p>Example:</p>
+
+<div class="highlight"><pre><span class="n">grid_min</span> <span class="p">=</span> <span class="o">-</span><span class="mi">2</span><span class="p">;</span>
+<span class="n">grid_max</span> <span class="p">=</span> <span class="mi">2</span><span class="p">;</span>
+<span class="n">grid_size</span> <span class="p">=</span> <span class="mi">10</span><span class="p">;</span>
+<span class="n">xi_min</span> <span class="p">=</span> <span class="n">grid_min</span> <span class="o">*</span> <span class="mf">1.2</span><span class="p">;</span>
+<span class="n">xi_max</span> <span class="p">=</span> <span class="n">grid_max</span> <span class="o">*</span> <span class="mf">1.2</span><span class="p">;</span>
+<span class="n">xi_size</span> <span class="p">=</span> <span class="n">grid_size</span> <span class="o">*</span> <span class="mi">10</span><span class="p">;</span>
+
+<span class="c">% function to interpolate</span>
+<span class="n">sin_sum_1</span> <span class="p">=</span> <span class="p">@(</span><span class="n">x</span><span class="p">)</span> <span class="nb">sin</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>
+<span class="n">sin_sum_2</span> <span class="p">=</span> <span class="p">@(</span><span class="n">x1</span><span class="p">,</span> <span class="n">x2</span><span class="p">)</span> <span class="nb">sin</span><span class="p">(</span><span class="n">x1</span><span class="o">+</span><span class="n">x2</span><span class="p">);</span>
+
+<span class="c">% max error, error sum of squares</span>
+<span class="n">err_ss</span> <span class="p">=</span> <span class="p">@(</span><span class="n">true_y</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="p">[</span><span class="n">max</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">y</span><span class="o">-</span><span class="n">true_y</span><span class="p">)),</span> <span class="n">sum</span><span class="p">((</span><span class="n">y</span><span class="o">-</span><span class="n">true_y</span><span class="p">)</span> <span class="o">.*</span> <span class="p">(</span><span class="n">y</span><span class="o">-</span><span class="n">true_y</span><span class="p">))];</span>
+
+<span class="c">% 1D</span>
+<span class="n">grid_1</span> <span class="p">=</span> <span class="nb">linspace</span><span class="p">(</span><span class="n">grid_min</span><span class="p">,</span> <span class="n">grid_max</span><span class="p">,</span> <span class="n">grid_size</span><span class="p">);</span>       <span class="c">% original grid</span>
+<span class="n">xi_grid_1</span> <span class="p">=</span> <span class="nb">linspace</span><span class="p">(</span><span class="n">xi_min</span><span class="p">,</span> <span class="n">xi_max</span><span class="p">,</span> <span class="n">xi_size</span><span class="p">);</span>          <span class="c">% grid of points to interpolate on</span>
+<span class="n">f</span> <span class="p">=</span> <span class="n">sin_sum_1</span><span class="p">(</span><span class="n">grid_1</span><span class="p">);</span>                                  <span class="c">% f evaluated on original grid</span>
+<span class="n">xi_mesh_1</span> <span class="p">=</span> <span class="n">xi_grid_1</span><span class="p">;</span>
+<span class="n">true_y</span> <span class="p">=</span> <span class="n">sin_sum_1</span><span class="p">(</span><span class="n">xi_mesh_1</span><span class="p">);</span>
+
+<span class="c">% matlab's interp1</span>
+<span class="n">yi_1</span> <span class="p">=</span> <span class="n">interp1</span><span class="p">(</span><span class="n">grid_1</span><span class="p">,</span><span class="n">f</span><span class="p">,</span><span class="n">xi_mesh_1</span><span class="p">);</span>                     <span class="c">% interpolated value</span>
+<span class="n">not_nans</span> <span class="p">=</span> <span class="n">not</span><span class="p">(</span><span class="nb">isnan</span><span class="p">(</span><span class="n">yi_1</span><span class="p">));</span>
+<span class="nb">disp</span><span class="p">(</span><span class="s">'interp1: max err, err SS'</span><span class="p">);</span>
+<span class="nb">disp</span><span class="p">(</span><span class="n">err_ss</span><span class="p">(</span><span class="n">true_y</span><span class="p">(</span><span class="n">not_nans</span><span class="p">),</span> <span class="n">yi_1</span><span class="p">(</span><span class="n">not_nans</span><span class="p">)));</span>
+<span class="n">figure</span><span class="p">(</span><span class="s">'Name'</span><span class="p">,</span> <span class="s">'interp1'</span><span class="p">);</span>
+<span class="n">plot</span><span class="p">(</span><span class="n">grid_1</span><span class="p">,</span><span class="n">f</span><span class="p">,</span><span class="s">'o'</span><span class="p">,</span> <span class="n">xi_grid_1</span><span class="p">,</span><span class="n">yi_1</span><span class="p">,</span><span class="s">'x'</span><span class="p">)</span>
+
+<span class="c">% linterp</span>
+<span class="n">yi_2</span> <span class="p">=</span> <span class="n">linterp_matlab</span><span class="p">(</span><span class="n">grid_1</span><span class="p">,</span><span class="n">f</span><span class="p">,</span><span class="n">xi_grid_1</span><span class="p">);</span>              <span class="c">% interpolated value</span>
+<span class="nb">disp</span><span class="p">(</span><span class="s">'linterp: max err, err SS'</span><span class="p">);</span>
+<span class="nb">disp</span><span class="p">(</span><span class="n">err_ss</span><span class="p">(</span><span class="n">true_y</span><span class="p">(</span><span class="n">not_nans</span><span class="p">),</span> <span class="n">yi_2</span><span class="p">(</span><span class="n">not_nans</span><span class="p">)));</span>
+<span class="n">figure</span><span class="p">(</span><span class="s">'Name'</span><span class="p">,</span> <span class="s">'linterp 1d'</span><span class="p">);</span>
+<span class="n">plot</span><span class="p">(</span><span class="n">grid_1</span><span class="p">,</span><span class="n">f</span><span class="p">,</span><span class="s">'o'</span><span class="p">,</span> <span class="n">xi_grid_1</span><span class="p">,</span><span class="n">yi_2</span><span class="p">,</span><span class="s">'x'</span><span class="p">)</span>
+
+<span class="c">% 2D</span>
+<span class="n">grid_1</span> <span class="p">=</span> <span class="nb">linspace</span><span class="p">(</span><span class="n">grid_min</span><span class="p">,</span> <span class="n">grid_max</span><span class="p">,</span> <span class="n">grid_size</span><span class="p">);</span>       <span class="c">% original grid</span>
+<span class="n">grid_2</span> <span class="p">=</span> <span class="nb">linspace</span><span class="p">(</span><span class="n">grid_min</span><span class="p">,</span> <span class="n">grid_max</span><span class="p">,</span> <span class="n">grid_size</span><span class="p">);</span>
+<span class="n">xi_grid_1</span> <span class="p">=</span> <span class="nb">linspace</span><span class="p">(</span><span class="n">xi_min</span><span class="p">,</span> <span class="n">xi_max</span><span class="p">,</span> <span class="n">xi_size</span><span class="p">);</span>          <span class="c">% grid of points to interpolate on</span>
+<span class="n">xi_grid_2</span> <span class="p">=</span> <span class="nb">linspace</span><span class="p">(</span><span class="n">xi_min</span><span class="p">,</span> <span class="n">xi_max</span><span class="p">,</span> <span class="n">xi_size</span><span class="p">);</span>
+<span class="p">[</span><span class="n">grid_mesh_1</span><span class="p">,</span> <span class="n">grid_mesh_2</span><span class="p">]</span> <span class="p">=</span> <span class="nb">ndgrid</span><span class="p">(</span><span class="n">grid_1</span><span class="p">,</span> <span class="n">grid_2</span><span class="p">);</span>
+<span class="p">[</span><span class="n">xi_mesh_1</span><span class="p">,</span> <span class="n">xi_mesh_2</span><span class="p">]</span> <span class="p">=</span> <span class="nb">ndgrid</span><span class="p">(</span><span class="n">xi_grid_1</span><span class="p">,</span> <span class="n">xi_grid_2</span><span class="p">);</span>
+<span class="n">f</span> <span class="p">=</span> <span class="n">sin_sum_2</span><span class="p">(</span><span class="n">grid_mesh_1</span><span class="p">,</span> <span class="n">grid_mesh_2</span><span class="p">);</span>                <span class="c">% f evaluated on original grid</span>
+<span class="n">true_y</span> <span class="p">=</span> <span class="n">sin_sum_2</span><span class="p">(</span><span class="n">xi_mesh_1</span><span class="p">,</span> <span class="n">xi_mesh_2</span><span class="p">);</span>
+<span class="n">figure</span><span class="p">(</span><span class="s">'Name'</span><span class="p">,</span> <span class="s">'true function'</span><span class="p">);</span>
+<span class="n">mesh</span><span class="p">(</span><span class="n">grid_1</span><span class="p">,</span> <span class="n">grid_2</span><span class="p">,</span> <span class="n">f</span><span class="p">);</span>
+
+<span class="c">% matlab's griddata 2d</span>
+<span class="nb">disp</span><span class="p">(</span><span class="s">'griddata:'</span><span class="p">);</span>
+<span class="n">tic</span><span class="p">;</span>
+<span class="n">yi_1</span> <span class="p">=</span> <span class="n">griddata</span><span class="p">(</span><span class="n">grid_mesh_1</span><span class="p">,</span> <span class="n">grid_mesh_2</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">xi_mesh_1</span><span class="p">,</span> <span class="n">xi_mesh_2</span><span class="p">);</span>                 <span class="c">% interpolated value</span>
+<span class="n">toc</span><span class="p">;</span>
+<span class="n">not_nans</span> <span class="p">=</span> <span class="n">not</span><span class="p">(</span><span class="nb">isnan</span><span class="p">(</span><span class="n">yi_1</span><span class="p">));</span>
+<span class="nb">disp</span><span class="p">(</span><span class="n">err_ss</span><span class="p">(</span><span class="n">true_y</span><span class="p">(</span><span class="n">not_nans</span><span class="p">),</span> <span class="n">yi_1</span><span class="p">(</span><span class="n">not_nans</span><span class="p">)));</span>
+<span class="n">figure</span><span class="p">(</span><span class="s">'Name'</span><span class="p">,</span> <span class="s">'griddata 2d'</span><span class="p">);</span>
+<span class="n">mesh</span><span class="p">(</span><span class="n">xi_grid_1</span><span class="p">,</span> <span class="n">xi_grid_2</span><span class="p">,</span> <span class="n">yi_1</span><span class="p">);</span>
+<span class="n">err</span> <span class="p">=</span> <span class="n">yi_1</span> <span class="o">-</span> <span class="n">true_y</span><span class="p">;</span>
+<span class="n">figure</span><span class="p">(</span><span class="s">'Name'</span><span class="p">,</span> <span class="s">'griddata 2d errors'</span><span class="p">);</span>
+<span class="n">mesh</span><span class="p">(</span><span class="n">xi_grid_1</span><span class="p">,</span> <span class="n">xi_grid_2</span><span class="p">,</span> <span class="n">err</span><span class="p">);</span>
+
+<span class="c">% linterp 2d</span>
+<span class="nb">disp</span><span class="p">(</span><span class="s">'linterp 2d:'</span><span class="p">);</span>
+<span class="n">tic</span><span class="p">;</span>
+<span class="n">yi_2</span> <span class="p">=</span> <span class="nb">reshape</span><span class="p">(</span><span class="n">linterp_matlab</span><span class="p">(</span><span class="n">grid_1</span><span class="p">,</span> <span class="n">grid_2</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">xi_mesh_1</span><span class="p">,</span> <span class="n">xi_mesh_2</span><span class="p">),</span> <span class="nb">size</span><span class="p">(</span><span class="n">true_y</span><span class="p">));</span>                          <span class="c">% interpolated value</span>
+<span class="n">toc</span><span class="p">;</span>
+<span class="nb">disp</span><span class="p">(</span><span class="n">err_ss</span><span class="p">(</span><span class="n">true_y</span><span class="p">(</span><span class="n">not_nans</span><span class="p">),</span> <span class="n">yi_2</span><span class="p">(</span><span class="n">not_nans</span><span class="p">)));</span>
+<span class="n">figure</span><span class="p">(</span><span class="s">'Name'</span><span class="p">,</span> <span class="s">'linterp 2d'</span><span class="p">);</span>
+<span class="n">mesh</span><span class="p">(</span><span class="n">xi_grid_1</span><span class="p">,</span> <span class="n">xi_grid_2</span><span class="p">,</span> <span class="n">yi_2</span><span class="p">);</span>
+<span class="n">err</span> <span class="p">=</span> <span class="n">yi_2</span> <span class="o">-</span> <span class="n">true_y</span><span class="p">;</span>
+<span class="n">err</span><span class="p">(</span><span class="nb">isnan</span><span class="p">(</span><span class="n">yi_1</span><span class="p">))</span> <span class="p">=</span> <span class="n">NaN</span><span class="p">;</span>
+<span class="n">figure</span><span class="p">(</span><span class="s">'Name'</span><span class="p">,</span> <span class="s">'linterp 2d errors'</span><span class="p">);</span>
+<span class="n">mesh</span><span class="p">(</span><span class="n">xi_grid_1</span><span class="p">,</span> <span class="n">xi_grid_2</span><span class="p">,</span> <span class="n">err</span><span class="p">);</span>
+</pre></div>
+
+<p>produces</p>
+
+<pre><code>interp1: max err, err SS
+    0.0240    0.0159
+
+linterp: max err, err SS
+    0.0240    0.0159
+
+griddata:
+Elapsed time is 0.574771 seconds.
+    0.0926    4.8782
+
+linterp 2d:
+Elapsed time is 0.001489 seconds.
+    0.0474    3.7872
+</code></pre>
+
+<p>Output of <code>griddata</code>:
+<img src="https://raw.github.com/rncarpio/linterp/master/matlab_griddata.png" alt="">
+Output of <code>linterp</code>:
+<img src="https://raw.github.com/rncarpio/linterp/master/matlab_linterp.png" alt=""></p>
+
+<h3>
+<a name="license" class="anchor" href="#license"><span class="octicon octicon-link"></span></a>License</h3>
+
+<p>Permission to use, copy, modify, distribute and sell this software and its documentation for any purpose is hereby granted without fee, provided that the above copyright notice appear in all copies and that both that copyright notice and this permission notice appear in supporting documentation.  The authors make no representations about the suitability of this software for any purpose. It is provided "as is" without express or implied warranty.</p>
       </section>
     </div>
 
