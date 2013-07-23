@@ -79,7 +79,7 @@ int main (int argc, char **argv) {
   std::vector<double> result(num_interp_elements);
   
   // pass in a sequence of iterators, one for each coordinate
-  std::vector< std::vector<double> > interp_x_list;
+  std::vector< std::vector<double>::iterator > interp_x_list;
   interp_x_list.push_back(interp_x1.begin());
   interp_x_list.push_back(interp_x2.begin());
   
