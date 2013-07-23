@@ -118,10 +118,10 @@
   <span class="p">}</span>
   <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">result</span><span class="p">(</span><span class="n">num_interp_elements</span><span class="p">);</span>
 
-  <span class="c1">// pass in a sequence of sequences, one for each coordinate</span>
-  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="o">&gt;</span> <span class="n">interp_x_list</span><span class="p">;</span>
-  <span class="n">interp_x_list</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">interp_x1</span><span class="p">);</span>
-  <span class="n">interp_x_list</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">interp_x2</span><span class="p">);</span>
+  <span class="c1">// pass in a sequence of iterators, one for each coordinate</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;::</span><span class="n">iterator</span> <span class="o">&gt;</span> <span class="n">interp_x_list</span><span class="p">;</span>
+  <span class="n">interp_x_list</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">interp_x1</span><span class="p">.</span><span class="n">begin</span><span class="p">());</span>
+  <span class="n">interp_x_list</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">interp_x2</span><span class="p">.</span><span class="n">begin</span><span class="p">());</span>
 
   <span class="c1">// interpolate a sequence of values</span>
   <span class="kt">clock_t</span> <span class="n">t1</span><span class="p">,</span> <span class="n">t2</span><span class="p">;</span>
@@ -272,9 +272,9 @@ Elapsed time is 0.001489 seconds.
     0.0474    3.7872
 </code></pre>
 
-<p>Output of <code>griddata</code>:
+<p>output of <code>griddata</code>:
 <img src="https://raw.github.com/rncarpio/linterp/master/matlab_griddata.png" alt="">
-Output of <code>linterp</code>:
+output of <code>linterp</code>:
 <img src="https://raw.github.com/rncarpio/linterp/master/matlab_linterp.png" alt=""></p>
 
 <h3>
