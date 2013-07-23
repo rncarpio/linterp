@@ -8,7 +8,7 @@ else
 endif
 
 ifeq ($(COMPILER), gcc)	
-	BOOST_DIR = $(HOME)/local/src/boost_1_51_0
+	BOOST_DIR = $(HOME)/boost_1_54_0
 	BOOST_INC_DIR = $(BOOST_DIR)
 	PYTHON_DIR = $(HOME)/local
 	PYTHON_INC_DIRS = $(HOME)/local/include/python2.7 $(HOME)/local/lib/python2.7/site-packages/numpy/core/include
