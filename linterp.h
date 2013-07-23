@@ -231,6 +231,17 @@ public:
   InterpSimplex(IterT1 grids_begin, IterT2 grids_len_begin, IterT3 f_begin, IterT3 f_end, ArrayRefCountT &refF, RefCountIterT ref_begins)
     : super(grids_begin, grids_len_begin, f_begin, f_end, refF, ref_begins)
   {}
+
+  template <class IterT>
+  T interp(IterT x_begin) const {
+    array<T,1> result;
+	array< array<T,1>, N > coord_iter;
+	for (int i=0; i<N; i++) {
+      coord_iter[i][0] = x_begin[i];
+	}
+	interp_vec(1, coord_iter.begin(), coord_iter.end(), result.begin());
+	return result[0];
+  }
   
   template <class IterT1, class IterT2>
   void interp_vec(int n, IterT1 coord_iter_begin, IterT1 coord_iter_end, IterT2 i_result) const {
@@ -312,6 +323,17 @@ public:
     return result;
   }
 
+  template <class IterT>
+  T interp(IterT x_begin) const {
+    array<T,1> result;
+	array< array<T,1>, N > coord_iter;
+	for (int i=0; i<N; i++) {
+      coord_iter[i][0] = x_begin[i];
+	}
+	interp_vec(1, coord_iter.begin(), coord_iter.end(), result.begin());
+	return result[0];
+  }
+  
   template <class IterT1, class IterT2>
   void interp_vec(int n, IterT1 coord_iter_begin, IterT1 coord_iter_end, IterT2 i_result) const {
     assert(N == coord_iter_end - coord_iter_begin);

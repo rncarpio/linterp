@@ -119,7 +119,7 @@ endif
 ## targets
 #########################
 
-EXE_TARGETS = linterp_test
+EXE_TARGETS = linterp_test linterp_test2
 EXE_FILES = $(foreach target, $(EXE_TARGETS), $(BUILD_DIR)/$(target)$(EXE_PREFIX))
 
 $(BUILD_DIR):
