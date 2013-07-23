@@ -60,6 +60,11 @@ public:
 	//printf("interp: %d points, %d clocks, %f sec\n", n, (t2-t1), ((double)(t2 - t1)) / CLOCKS_PER_SEC);	
 	return result;
   }
+  
+  double interp(dPyArr x) const {
+    bpl_assert(x.size() == N, "wrong number of coords");
+	return m_p_interp_obj->interp(x.begin());
+  }
 };
 
 typedef NDInterpolator_wrap<InterpSimplex<1,double,false,true,dPyArr,dPyArr> > NDInterpolator_1_S_wrap;
@@ -171,23 +176,29 @@ BOOST_PYTHON_MODULE(_linterp_python)
 
   
     bpl::class_<NDInterpolator_1_S_wrap, boost::noncopyable>("Interp_1_S", bpl::init<vector<dPyArr>, dPyArr>())
-		.def("interp_vec", &NDInterpolator_1_S_wrap::interp_vec) 
+		.def("interp_vec", &NDInterpolator_1_S_wrap::interp_vec)
+		.def("interp", &NDInterpolator_1_S_wrap::interp_vec)
 	;
     bpl::class_<NDInterpolator_2_S_wrap, boost::noncopyable>("Interp_2_S", bpl::init<vector<dPyArr>, dPyArr>())
-		.def("interp_vec", &NDInterpolator_2_S_wrap::interp_vec) 
+		.def("interp_vec", &NDInterpolator_2_S_wrap::interp_vec)
+		.def("interp", &NDInterpolator_2_S_wrap::interp_vec)
 	;
     bpl::class_<NDInterpolator_3_S_wrap, boost::noncopyable>("Interp_3_S", bpl::init<vector<dPyArr>, dPyArr>())
-		.def("interp_vec", &NDInterpolator_3_S_wrap::interp_vec) 
+		.def("interp_vec", &NDInterpolator_3_S_wrap::interp_vec)
+		.def("interp", &NDInterpolator_3_S_wrap::interp_vec)
 	;
 
     bpl::class_<NDInterpolator_1_ML_wrap, boost::noncopyable>("Interp_1_ML", bpl::init<vector<dPyArr>, dPyArr>())
-		.def("interp_vec", &NDInterpolator_1_ML_wrap::interp_vec) 
+		.def("interp_vec", &NDInterpolator_1_ML_wrap::interp_vec)
+		.def("interp", &NDInterpolator_1_ML_wrap::interp_vec)
 	;
     bpl::class_<NDInterpolator_2_ML_wrap, boost::noncopyable>("Interp_2_ML", bpl::init<vector<dPyArr>, dPyArr>())
-		.def("interp_vec", &NDInterpolator_2_ML_wrap::interp_vec) 
+		.def("interp_vec", &NDInterpolator_2_ML_wrap::interp_vec)
+		.def("interp", &NDInterpolator_2_ML_wrap::interp_vec)
 	;
     bpl::class_<NDInterpolator_3_ML_wrap, boost::noncopyable>("Interp_3_ML", bpl::init<vector<dPyArr>, dPyArr>())
-		.def("interp_vec", &NDInterpolator_3_ML_wrap::interp_vec) 
+		.def("interp_vec", &NDInterpolator_3_ML_wrap::interp_vec)
+		.def("interp", &NDInterpolator_3_ML_wrap::interp_vec)
 	;
 	
 }
