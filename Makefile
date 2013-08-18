@@ -1,6 +1,8 @@
 
 DEBUG = 0
 
+VPATH = src
+
 ifeq ($(OS),Windows_NT)
 	COMPILER = msvc
 else
@@ -21,7 +23,7 @@ else
 endif
 
 PYUBLAS_INC_DIR = .
-INCLUDES = -I$(BOOST_INC_DIR) -I$(PYUBLAS_INC_DIR) \
+INCLUDES = -Isrc -I$(BOOST_INC_DIR) -I$(PYUBLAS_INC_DIR) \
 	$(foreach dir, $(PYTHON_INC_DIRS), -I$(dir))
 BOOST_LIB_DIR = $(BOOST_DIR)/lib
 ifeq ($(COMPILER), gcc)	
