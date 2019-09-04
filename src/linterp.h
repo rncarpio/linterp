@@ -387,7 +387,7 @@ extern "C" {
   void linterp_simplex_3(double **grids_begin, int *grid_len_begin, double *pF, int xi_len, double **xi_begin, double *pResult);  
 }
 
-void linterp_simplex_1(double **grids_begin, int *grid_len_begin, double *pF, int xi_len, double **xi_begin, double *pResult) {
+void inline linterp_simplex_1(double **grids_begin, int *grid_len_begin, double *pF, int xi_len, double **xi_begin, double *pResult) {
   const int N=1;
   size_t total_size = 1;  
   for (int i=0; i<N; i++)	{     
@@ -397,7 +397,7 @@ void linterp_simplex_1(double **grids_begin, int *grid_len_begin, double *pF, in
   interp_obj.interp_vec(xi_len, xi_begin, xi_begin + N, pResult);
 }
 
-void linterp_simplex_2(double **grids_begin, int *grid_len_begin, double *pF, int xi_len, double **xi_begin, double *pResult) {
+void inline linterp_simplex_2(double **grids_begin, int *grid_len_begin, double *pF, int xi_len, double **xi_begin, double *pResult) {
   const int N=2;
   size_t total_size = 1;  
   for (int i=0; i<N; i++)	{     
@@ -407,7 +407,7 @@ void linterp_simplex_2(double **grids_begin, int *grid_len_begin, double *pF, in
   interp_obj.interp_vec(xi_len, xi_begin, xi_begin + N, pResult);
 }
 
-void linterp_simplex_3(double **grids_begin, int *grid_len_begin, double *pF, int xi_len, double **xi_begin, double *pResult) {
+void inline linterp_simplex_3(double **grids_begin, int *grid_len_begin, double *pF, int xi_len, double **xi_begin, double *pResult) {
   const int N=3;
   size_t total_size = 1;  
   for (int i=0; i<N; i++)	{     
