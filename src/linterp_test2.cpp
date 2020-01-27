@@ -13,20 +13,20 @@ std::vector<double> linspace(double first, double last, int len) {
 double fn (double x1, double x2) { return sin(x1 + x2); }
 
 int main (int argc, char **argv) {
-  const int length = 10;
+  const int length[] = {10, 20};
     
   // construct the grid in each dimension. 
   // note that we will pass in a sequence of iterators pointing to the beginning of each grid
-  std::vector<double> grid1 = linspace(0.0, 3.0, length);
-  std::vector<double> grid2 = linspace(0.0, 3.0, length);
+  std::vector<double> grid1 = linspace(0.0, 3.0, length[0]);
+  std::vector<double> grid2 = linspace(0.0, 3.0, length[1]);
   std::vector< std::vector<double>::iterator > grid_iter_list;
   grid_iter_list.push_back(grid1.begin());
   grid_iter_list.push_back(grid2.begin());
   
   // the size of the grid in each dimension
   array<int,2> grid_sizes;
-  grid_sizes[0] = length;
-  grid_sizes[1] = length;
+  grid_sizes[0] = length[0];
+  grid_sizes[1] = length[1];
   
   // total number of elements
   int num_elements = grid_sizes[0] * grid_sizes[1];
@@ -36,7 +36,7 @@ int main (int argc, char **argv) {
   std::vector<double> f_values(num_elements);
   for (int i=0; i<grid_sizes[0]; i++) {
     for (int j=0; j<grid_sizes[1]; j++) {
-	  f_values[i*grid_sizes[0] + j] = fn(grid1[i], grid2[j]);
+	  f_values[i*grid_sizes[1] + j] = fn(grid1[i], grid2[j]);
 	}
   }
   
@@ -48,7 +48,7 @@ int main (int argc, char **argv) {
   printf("%f, %f -> %f\n", args[0], args[1], interp_ML.interp(args.begin()));
 
   // interpolate multiple values: create sequences for each coordinate
-  std::vector<double> interp_grid = linspace(0.0, 3.0, length*10);
+  std::vector<double> interp_grid = linspace(0.0, 3.0, (length[0]+length[1])*10);
   int num_interp_elements = interp_grid.size() * interp_grid.size();
   std::vector<double> interp_x1(num_interp_elements);
   std::vector<double> interp_x2(num_interp_elements);
